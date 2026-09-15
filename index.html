@@ -1194,6 +1194,28 @@ Letakkan tetikus pada nombor untuk melihat nama murid.
 </div>
 
 
+<!-- SMART MOOD ALERT -->
+
+<div class="dashboardSection">
+
+<h3>
+🔔 SMART MOOD ALERT
+</h3>
+
+<p
+class="note"
+style="text-align:center">
+
+Peringatan berdasarkan pola pilihan mood murid. Sistem bukan alat diagnosis emosi.
+
+</p>
+
+<div id="smartMoodAlertList">
+</div>
+
+</div>
+
+
 <!-- CURRENT RECORDS -->
 
 <div class="dashboardSection">
@@ -2033,21 +2055,24 @@ async function finish(mood){
   .textContent=
   selected[1];
 
-  document.getElementById("resultText").textContent=
+  document.getElementById("resultText")
+  .textContent=
   status==="HADIR"
-  ? "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
-  : "Semoga awak dapat hadir ke sekolah esok.";
+  ?
+  "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+  :
+  "Semoga awak dapat hadir ke sekolah esok.";
 
-/* SUARA PAPARAN AKHIR */
-if(status==="HADIR"){
-  speak(
-    "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
-  );
-}else{
-  speak(
-    "Semoga awak dapat hadir ke sekolah esok."
-  );
-}
+  /* SUARA PAPARAN AKHIR */
+  if(status==="HADIR"){
+    speak(
+      "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+    );
+  }else{
+    speak(
+      "Semoga awak dapat hadir ke sekolah esok."
+    );
+  }
 
 
   /* HADIR & CERIA STREAK
@@ -2783,6 +2808,18 @@ async function loadDashboard(){
 
 
     /*
+      SMART MOOD ALERT
+      Sedih = 1 kali pun alert
+      Mengantuk = 2 kali dalam 5 hari persekolahan
+    */
+
+    renderSmartMoodAlerts(
+      data,
+      todayRecords
+    );
+
+
+    /*
       REKOD TERKINI
     */
 
@@ -2997,6 +3034,195 @@ function renderDailyMood(records){
     }
   )
   .join("");
+
+}
+
+
+/* =========================================================
+   SMART MOOD ALERT
+   ========================================================= */
+
+function getLatestRecordForStudentOnDate(records,name,dateKey){
+
+  const matches=
+  records.filter(r=>
+    normaliseNama(r.nama)===normaliseNama(name) &&
+    getRecordDate(r)===dateKey
+  );
+
+  if(!matches.length){
+    return null;
+  }
+
+  return matches.sort(
+    (a,b)=>timeValue(b)-timeValue(a)
+  )[0];
+
+}
+
+
+function getRecentSchoolDates(count){
+
+  const dates=[];
+  let d=new Date();
+
+  while(dates.length<count){
+
+    const day=d.getDay();
+
+    if(day!==0 && day!==6){
+      dates.push(formatDateMY(d));
+    }
+
+    d.setDate(d.getDate()-1);
+
+  }
+
+  return dates;
+
+}
+
+
+function renderSmartMoodAlerts(allRecords,todayRecords){
+
+  const element=
+  document.getElementById(
+    "smartMoodAlertList"
+  );
+
+  if(!element){
+    return;
+  }
+
+  const today=
+  formatDateMY(new Date());
+
+  const schoolDates=
+  getRecentSchoolDates(5);
+
+  const alerts=[];
+
+  pupils.forEach(p=>{
+
+    const nameKey=p[0];
+    const displayName=p[1];
+
+    /*
+      ALERT 1:
+      SEDIH SEKALI PUN - berdasarkan rekod TERKINI hari ini.
+    */
+
+    const todayRecord=
+    getLatestRecordForStudentOnDate(
+      allRecords,
+      nameKey,
+      today
+    );
+
+    if(
+      todayRecord &&
+      String(todayRecord.mood||"").trim()==="Sedih"
+    ){
+
+      alerts.push({
+        type:"sedih",
+        icon:"😢",
+        name:displayName,
+        title:"PERHATIAN GURU",
+        text:"Memilih mood Sedih hari ini.",
+        action:"Guru disarankan membuat pemerhatian dan pendekatan secara bersemuka."
+      });
+
+    }
+
+    /*
+      ALERT 2:
+      MENGANTUK 2 KALI DALAM 5 HARI PERSEKOLAHAN.
+      Hanya rekod TERKINI bagi setiap hari dikira.
+    */
+
+    let mengantukCount=0;
+
+    schoolDates.forEach(dateKey=>{
+
+      const record=
+      getLatestRecordForStudentOnDate(
+        allRecords,
+        nameKey,
+        dateKey
+      );
+
+      if(
+        record &&
+        String(record.mood||"").trim()==="Mengantuk"
+      ){
+        mengantukCount++;
+      }
+
+    });
+
+    if(mengantukCount>=2){
+
+      alerts.push({
+        type:"mengantuk",
+        icon:"😴",
+        name:displayName,
+        title:"POLA DIKESAN",
+        text:"Memilih mood Mengantuk "+mengantukCount+" kali dalam 5 hari persekolahan.",
+        action:"Guru disarankan membuat pemerhatian terhadap keadaan murid."
+      });
+
+    }
+
+  });
+
+
+  if(!alerts.length){
+
+    element.innerHTML=
+    `
+    <div
+    style="padding:22px;text-align:center;border-radius:16px;background:#f0fff4;border:1px solid #c6f6d5;color:#276749;font-size:17px;font-weight:700">
+
+    ✅ Tiada SMART MOOD ALERT buat masa ini.
+
+    <div style="font-size:13px;font-weight:500;margin-top:8px;color:#4a5568">
+    Sistem akan memaklumkan guru jika pola yang ditetapkan dikesan.
+    </div>
+
+    </div>
+    `;
+
+    return;
+
+  }
+
+
+  element.innerHTML=
+  alerts.map(alert=>`
+
+    <div
+    style="margin-bottom:14px;padding:18px;border-radius:16px;background:#fffaf0;border:2px solid #f6ad55;box-shadow:0 4px 12px rgba(0,0,0,.06)">
+
+      <div style="font-size:20px;font-weight:800;color:#9c4221">
+      🔔 ${escapeHtml(alert.title)}
+      </div>
+
+      <div style="font-size:19px;font-weight:800;margin-top:8px">
+      ${alert.icon} ${escapeHtml(alert.name)}
+      </div>
+
+      <div style="font-size:16px;margin-top:6px;color:#4a5568">
+      ${escapeHtml(alert.text)}
+      </div>
+
+      <div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff;font-size:14px;color:#4a5568">
+      📌 ${escapeHtml(alert.action)}
+      </div>
+
+    </div>
+
+  `).join("");
 
 }
 
