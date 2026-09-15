@@ -1760,9 +1760,9 @@ function attendance(s){
 
     show("mood");
 
-    speak(
-      "Terima kasih hadir ke sekolah. Semoga awak happy belajar nanti."
-    );
+speak(
+  "Apa yang awak rasa pada pagi ini?"
+);
 
   }else{
 
@@ -1898,6 +1898,11 @@ async function finish(mood){
 
   show("result");
 
+if(status==="HADIR"){
+  speak(
+    "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+  );
+}
 
   setTimeout(()=>{
 
