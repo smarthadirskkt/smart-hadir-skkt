@@ -1834,7 +1834,7 @@ async function finish(mood){
   };
 
 
-  /* SIMPAN LOCAL */
+  /* SIMPAN LOCAL TERUS */
 
   let all=
   JSON.parse(
@@ -1849,11 +1849,51 @@ async function finish(mood){
   );
 
 
-  /* HANTAR GOOGLE SHEETS */
+  /* PAPAR KEPUTUSAN TERUS */
+
+  document.getElementById("resultIcon")
+  .textContent=
+  status==="HADIR"
+  ?"🎉"
+  :"💛";
+
+  document.getElementById("resultTitle")
+  .textContent=
+  selected[1];
+
+  document.getElementById("resultText")
+  .textContent=
+  status==="HADIR"
+  ?
+  "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini!"
+  :
+  "Semoga awak dapat hadir ke sekolah esok.";
+
+  show("result");
+
+
+  /* SUARA TERUS */
+
+  if(status==="HADIR"){
+
+    speak(
+      "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+    );
+
+  }else{
+
+    speak(
+      "Semoga awak dapat hadir ke sekolah esok."
+    );
+
+  }
+
+
+  /* HANTAR GOOGLE SHEETS DI BELAKANG TABIR */
 
   try{
 
-    await fetch(
+    fetch(
       GOOGLE_SCRIPT_URL,
       {
         method:"POST",
@@ -1876,33 +1916,7 @@ async function finish(mood){
   }
 
 
-  /* PAPAR KEPUTUSAN */
-
-  document.getElementById("resultIcon")
-  .textContent=
-  status==="HADIR"
-  ?"🎉"
-  :"💛";
-
-  document.getElementById("resultTitle")
-  .textContent=
-  selected[1];
-
-  document.getElementById("resultText")
-  .textContent=
-  status==="HADIR"
-  ?
-  "Terima kasih hadir ke sekolah. Semoga awak happy belajar nanti!"
-  :
-  "Semoga awak dapat hadir ke sekolah esok.";
-
-  show("result");
-
-if(status==="HADIR"){
-  speak(
-    "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
-  );
-}
+  /* RESET */
 
   setTimeout(()=>{
 
