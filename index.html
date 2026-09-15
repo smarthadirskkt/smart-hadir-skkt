@@ -1667,65 +1667,13 @@ function speak(text){
    PILIH MURID
    ========================================================= */
 
-async function choose(i){
+function choose(i){
 
   selected=pupils[i];
 
   /*
-    Semak dahulu rekod Google Sheets
-    untuk nama murid pada hari ini.
-  */
-
-  try{
-
-    const data=
-    await getGoogleSheetData();
-
-    const today=
-    formatDateMY(new Date());
-
-    const alreadyRecorded=
-    data.some(r=>
-      getRecordDate(r)===today &&
-      normaliseNama(r.nama)===normaliseNama(selected[0])
-    );
-
-
-    /*
-      Jika sudah mengisi kehadiran hari ini
-    */
-
-    if(alreadyRecorded){
-
-      speak(
-        "Anda sudah mengisi kehadiran pada hari ini."
-      );
-
-      show("home");
-
-      return;
-
-    }
-
-
-  }catch(error){
-
-    /*
-      Jika Google Sheets gagal dibaca,
-      jangan halang murid daripada meneruskan.
-    */
-
-    console.log(
-      "Semakan kehadiran:",
-      error
-    );
-
-  }
-
-
-  /*
-    Jika belum ada rekod,
-    teruskan seperti biasa.
+    TERUS PAPAR HADIR / TIDAK HADIR
+    TANPA SEMAK GOOGLE SHEETS
   */
 
   document.getElementById("hello").innerHTML=
@@ -1741,9 +1689,7 @@ async function choose(i){
     ". Adakah awak hadir ke sekolah hari ini?"
   );
 
-}
-
-/* =========================================================
+}/* =========================================================
    KEHADIRAN
    ========================================================= */
 
