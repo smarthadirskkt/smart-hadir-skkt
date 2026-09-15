@@ -57,16 +57,9 @@ body{
 }
 
 .logo{
-  margin-bottom:10px;
+  font-size:76px;
 }
 
-.schoolLogo{
-  width:140px;
-  height:140px;
-  object-fit:contain;
-  display:block;
-  margin:0 auto;
-}
 .title{
   font-size:48px;
   font-weight:900;
@@ -233,6 +226,40 @@ body{
   font-weight:800;
   line-height:1.35;
   margin:22px;
+}
+
+.streakBox{
+  margin:18px auto 8px;
+  padding:18px 20px;
+  max-width:650px;
+  background:linear-gradient(135deg,#fff8d8,#fff);
+  border:3px solid #ffd95a;
+  border-radius:24px;
+  box-shadow:0 8px 22px rgba(20,50,80,.08);
+}
+
+.streakIcon{
+  font-size:54px;
+}
+
+.streakTitle{
+  font-size:30px;
+  font-weight:900;
+  color:#d88900;
+  margin:4px 0;
+}
+
+.streakText{
+  font-size:22px;
+  font-weight:800;
+  line-height:1.35;
+}
+
+.streakNext{
+  margin-top:8px;
+  font-size:17px;
+  color:#657684;
+  font-weight:700;
 }
 
 .note{
@@ -665,13 +692,7 @@ body{
 
 <div class="card">
 
-<div class="logo">
-  <img
-    src="logo-skkt.png"
-    alt="Logo SK Kampong Tanjong"
-    class="schoolLogo"
-  >
-</div>
+<div class="logo">🌈</div>
 
 <div class="title">SMART HADIR</div>
 
@@ -911,6 +932,34 @@ id="resultTitle">
 <div
 class="resultText"
 id="resultText">
+</div>
+
+<div
+class="streakBox"
+id="streakBox"
+style="display:none">
+
+<div
+class="streakIcon"
+id="streakIcon">
+🌟
+</div>
+
+<div
+class="streakTitle"
+id="streakTitle">
+</div>
+
+<div
+class="streakText"
+id="streakText">
+</div>
+
+<div
+class="streakNext"
+id="streakNext">
+</div>
+
 </div>
 
 <p class="note">
@@ -1702,7 +1751,9 @@ function choose(i){
     ". Adakah awak hadir ke sekolah hari ini?"
   );
 
-}/* =========================================================
+}
+
+/* =========================================================
    KEHADIRAN
    ========================================================= */
 
@@ -1719,9 +1770,9 @@ function attendance(s){
 
     show("mood");
 
-speak(
-  "Apa yang awak rasa pada pagi ini?"
-);
+    speak(
+      "Apa yang awak rasa pada pagi ini?"
+    );
 
   }else{
 
@@ -1734,7 +1785,6 @@ speak(
   }
 
 }
-
 
 /* =========================================================
    TARIKH DD/MM/YYYY
@@ -1767,6 +1817,165 @@ function formatTimeMY(date){
 
 
 /* =========================================================
+   HADIR & CERIA STREAK
+   ========================================================= */
+
+function previousSchoolDay(date){
+
+  let d=new Date(date);
+
+  do{
+    d.setDate(d.getDate()-1);
+  }while(d.getDay()===0 || d.getDay()===6);
+
+  return d;
+
+}
+
+
+function getDateKeyMY(date){
+
+  return formatDateMY(date);
+
+}
+
+
+function getLatestRecordByNameAndDate(records,name,dateKey){
+
+  const matches=records.filter(r=>
+    r &&
+    normaliseNama(r.nama)===normaliseNama(name) &&
+    getRecordDate(r)===dateKey
+  );
+
+  if(!matches.length){
+    return null;
+  }
+
+  return matches.reduce((latest,r)=>{
+
+    if(!latest){
+      return r;
+    }
+
+    return timeValue(r)>=timeValue(latest) ? r : latest;
+
+  },null);
+
+}
+
+
+function calculateHadirStreak(records,name){
+
+  let streak=0;
+  let d=new Date();
+
+  /*
+    Mula dengan hari ini. Hanya rekod TERKINI
+    bagi setiap hari dikira. Sabtu dan Ahad
+    tidak memutuskan streak.
+  */
+
+  while(true){
+
+    if(d.getDay()===0 || d.getDay()===6){
+      d=previousSchoolDay(d);
+      continue;
+    }
+
+    const dateKey=getDateKeyMY(d);
+    const latest=getLatestRecordByNameAndDate(
+      records,
+      name,
+      dateKey
+    );
+
+    if(
+      latest &&
+      String(latest.kehadiran||"")
+      .toUpperCase()==="HADIR"
+    ){
+      streak++;
+      d=previousSchoolDay(d);
+      continue;
+    }
+
+    break;
+
+  }
+
+  return streak;
+
+}
+
+
+function getStreakBadge(streak){
+
+  if(streak>=20){
+    return {
+      icon:"🏆",
+      title:"JUARA HADIR & CERIA!",
+      level:"20 hari"
+    };
+  }
+
+  if(streak>=10){
+    return {
+      icon:"🥇",
+      title:"CEMERLANG!",
+      level:"10 hari"
+    };
+  }
+
+  if(streak>=5){
+    return {
+      icon:"🥈",
+      title:"MANTAP!",
+      level:"5 hari"
+    };
+  }
+
+  if(streak>=3){
+    return {
+      icon:"🥉",
+      title:"HEBAT!",
+      level:"3 hari"
+    };
+  }
+
+  return {
+    icon:"🌟",
+    title:"TERUSKAN!",
+    level:""
+  };
+
+}
+
+
+function getStreakNextMessage(streak){
+
+  if(streak<3){
+    return "Lagi "+(3-streak)+" hari untuk lencana 🥉";
+  }
+
+  if(streak<5){
+    return "Lagi "+(5-streak)+" hari untuk lencana 🥈";
+  }
+
+  if(streak<10){
+    return "Lagi "+(10-streak)+" hari untuk lencana 🥇";
+  }
+
+  if(streak<20){
+    return "Lagi "+(20-streak)+" hari untuk piala 🏆";
+  }
+
+  return "Hebat! Anda sudah mencapai tahap tertinggi. 🏆";
+
+}
+
+
+/* =========================================================
    HANTAR REKOD
    ========================================================= */
 
@@ -1777,6 +1986,10 @@ async function finish(mood){
   }
 
   let d=new Date();
+
+  const studentName=selected[0];
+  const studentDisplayName=selected[1];
+  const attendanceStatus=status;
 
   let record={
 
@@ -1793,7 +2006,7 @@ async function finish(mood){
   };
 
 
-  /* SIMPAN LOCAL TERUS */
+  /* SIMPAN LOCAL UNTUK SALINAN PERANTI */
 
   let all=
   JSON.parse(
@@ -1808,7 +2021,7 @@ async function finish(mood){
   );
 
 
-  /* PAPAR KEPUTUSAN TERUS */
+  /* PAPAR KEPUTUSAN TERUS — TIDAK TUNGGU GOOGLE SHEETS */
 
   document.getElementById("resultIcon")
   .textContent=
@@ -1820,39 +2033,62 @@ async function finish(mood){
   .textContent=
   selected[1];
 
-  document.getElementById("resultText")
-  .textContent=
+  document.getElementById("resultText").textContent=
   status==="HADIR"
-  ?
-  "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini!"
-  :
-  "Semoga awak dapat hadir ke sekolah esok.";
+  ? "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+  : "Semoga awak dapat hadir ke sekolah esok.";
 
-  show("result");
+/* SUARA PAPARAN AKHIR */
+if(status==="HADIR"){
+  speak(
+    "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
+  );
+}else{
+  speak(
+    "Semoga awak dapat hadir ke sekolah esok."
+  );
+}
 
 
-  /* SUARA TERUS */
+  /* HADIR & CERIA STREAK
+     KIRAAN AKHIR MESTI BERDASARKAN GOOGLE SHEETS */
 
-  if(status==="HADIR"){
+  const streakBox=
+  document.getElementById("streakBox");
 
-    speak(
-      "Terima kasih datang ke sekolah. Semoga awak happy belajar pada hari ini."
-    );
+  if(attendanceStatus==="HADIR"){
+
+    /* Paparan sementara sementara data Google Sheets dibaca */
+
+    document.getElementById("streakIcon")
+    .textContent="⏳";
+
+    document.getElementById("streakTitle")
+    .textContent="SEMAK STREAK...";
+
+    document.getElementById("streakText")
+    .textContent="Sedang mengira kehadiran awak.";
+
+    document.getElementById("streakNext")
+    .textContent="Data diambil daripada Google Sheets. ☁️";
+
+    streakBox.style.display="block";
 
   }else{
 
-    speak(
-      "Semoga awak dapat hadir ke sekolah esok."
-    );
+    streakBox.style.display="none";
 
   }
 
 
-  /* HANTAR GOOGLE SHEETS DI BELAKANG TABIR */
+  show("result");
+
+
+  /* HANTAR GOOGLE SHEETS DI LATAR BELAKANG */
 
   try{
 
-    fetch(
+    await fetch(
       GOOGLE_SCRIPT_URL,
       {
         method:"POST",
@@ -1865,24 +2101,77 @@ async function finish(mood){
       }
     );
 
+
+    /*
+      Selepas rekod berjaya dihantar, baca semula
+      Google Sheets dan kira streak daripada data sebenar.
+      Jadi localStorage TIDAK digunakan untuk menentukan streak.
+    */
+
+    if(attendanceStatus==="HADIR"){
+
+      const googleRecords=
+      await getGoogleSheetData();
+
+      const streak=
+      calculateHadirStreak(
+        googleRecords,
+        studentName
+      );
+
+      const badge=
+      getStreakBadge(streak);
+
+      document.getElementById("streakIcon")
+      .textContent=badge.icon;
+
+      document.getElementById("streakTitle")
+      .textContent=badge.title;
+
+      document.getElementById("streakText")
+      .textContent=
+      streak===1
+      ?
+      "Anda telah hadir 1 hari berturut-turut!"
+      :
+      "Anda telah hadir "+streak+" hari berturut-turut!";
+
+      document.getElementById("streakNext")
+      .textContent=
+      getStreakNextMessage(streak);
+
+    }
+
   }catch(error){
 
     console.log(
-      "Google Sheets POST:",
+      "Google Sheets:",
       error
     );
+
+    if(attendanceStatus==="HADIR"){
+
+      document.getElementById("streakIcon")
+      .textContent="☁️";
+
+      document.getElementById("streakTitle")
+      .textContent="STREAK BELUM DAPAT DIKIRA";
+
+      document.getElementById("streakText")
+      .textContent="Sambungan ke Google Sheets tidak tersedia sekarang.";
+
+      document.getElementById("streakNext")
+      .textContent="Cuba lagi pada rekod seterusnya.";
+
+    }
 
   }
 
 
-  /* RESET */
-
   setTimeout(()=>{
 
     selected=null;
-
     status="";
-
     show("home");
 
   },5000);
@@ -4202,7 +4491,7 @@ function getMorningVoice(){
     "Selamat pagi! Jom kita tandakan kehadiran hari ini. Cikgu seronok jumpa kamu!",
 
     2:
-    "Selamat datang ke sekolah! Siapa yang sudah bersedia untuk belajar dan bermain hari ini?",
+    "Selamat datang ke sekolah! Siapa yang sudah bersedia untuk belajar dan bermain hari ini? Jom kita mulakan hari dengan ceria!",
 
     3:
     "Selamat pagi, anak-anak hebat! Hari ini kita belajar, bermain dan bergembira bersama. Kamu semua memang hebat!",
