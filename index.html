@@ -57,7 +57,15 @@ body{
 }
 
 .logo{
-  font-size:76px;
+  margin-bottom:10px;
+}
+
+.schoolLogo{
+  width:140px;
+  height:140px;
+  object-fit:contain;
+  display:block;
+  margin:0 auto;
 }
 
 .title{
@@ -692,7 +700,13 @@ body{
 
 <div class="card">
 
-<div class="logo">🌈</div>
+<div class="logo">
+  <img
+    src="logo-skkt.png"
+    alt="Logo SK Kampong Tanjong"
+    class="schoolLogo"
+  >
+</div>
 
 <div class="title">SMART HADIR</div>
 
@@ -1896,6 +1910,11 @@ function calculateHadirStreak(records,name){
   let streak=0;
   let d=new Date();
 
+  /* STREAK hanya dikira dalam bulan dan tahun semasa.
+     Apabila sampai ke bulan sebelumnya, kiraan dihentikan. */
+  const currentMonth=d.getMonth();
+  const currentYear=d.getFullYear();
+
   /* Bina indeks sekali sahaja untuk murid ini supaya tidak
      menapis semua rekod berulang kali bagi setiap hari. */
   const nameKey=normaliseNama(name);
@@ -1923,6 +1942,14 @@ function calculateHadirStreak(records,name){
 
   while(true){
 
+    /* Jangan sambung streak ke bulan sebelumnya. */
+    if(
+      d.getMonth()!==currentMonth ||
+      d.getFullYear()!==currentYear
+    ){
+      break;
+    }
+
     if(d.getDay()===0 || d.getDay()===6){
       d=previousSchoolDay(d);
       continue;
@@ -1931,8 +1958,18 @@ function calculateHadirStreak(records,name){
     const dateKey=getDateKeyMY(d);
     const latest=latestByDate[dateKey] || null;
 
+    /*
+      Jika tiada rekod langsung pada sesuatu hari persekolahan,
+      anggap hari tersebut sebagai hari tiada rekod / cuti sekolah
+      dan terus semak hari persekolahan sebelumnya.
+      Jadi cuti seperti 16/09 tidak memutuskan streak.
+    */
+    if(!latest){
+      d=previousSchoolDay(d);
+      continue;
+    }
+
     if(
-      latest &&
       String(latest.kehadiran||"")
       .toUpperCase()==="HADIR"
     ){
@@ -1941,6 +1978,7 @@ function calculateHadirStreak(records,name){
       continue;
     }
 
+    /* Rekod TIDAK HADIR benar-benar memutuskan streak. */
     break;
 
   }
