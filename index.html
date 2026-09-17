@@ -684,6 +684,28 @@ body{
 
 }
 
+
+/* PENCAPAIAN STREAK BULANAN */
+.streakRewardBox{
+  margin:25px auto;
+  padding:20px;
+  max-width:900px;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 6px 18px rgba(20,50,80,.08);
+}
+.streakRewardBox h3{margin:0 0 6px;text-align:center;}
+.streakRewardNote{text-align:center;margin:0 0 16px;font-size:15px;}
+.streakRewardTable{width:100%;border-collapse:collapse;}
+.streakRewardTable th,.streakRewardTable td{padding:11px 10px;border-bottom:1px solid #e8edf3;text-align:left;}
+.streakRewardTable th{background:#f4f8fc;}
+.streakRewardTable td:nth-child(1),.streakRewardTable td:nth-child(3){text-align:center;}
+.rewardGold{font-weight:800;}
+.rewardSilver{font-weight:800;}
+.rewardBronze{font-weight:800;}
+.rewardAchiever{font-weight:800;}
+.rewardNone{opacity:.6;}
+
 </style>
 
 </head>
@@ -1532,6 +1554,33 @@ onchange="renderMonthlyAnalysis()">
 
 <canvas id="monthlyMoodChart">
 </canvas>
+
+</div>
+
+
+<div class="streakRewardBox">
+
+<h3>🏅 Pencapaian Streak Bulanan</h3>
+
+<p class="streakRewardNote">
+Pencapaian tertinggi setiap murid dalam bulan yang dipilih — rujukan mudah untuk reward murid.
+</p>
+
+<div style="overflow-x:auto;">
+<table class="streakRewardTable">
+<thead>
+<tr>
+<th>Bil.</th>
+<th>Nama Murid</th>
+<th>Streak Tertinggi</th>
+<th>Tahap Pencapaian</th>
+</tr>
+</thead>
+<tbody id="monthlyStreakRewardBody">
+<tr><td colspan="4" style="text-align:center;">Tiada data.</td></tr>
+</tbody>
+</table>
+</div>
 
 </div>
 
@@ -4154,6 +4203,134 @@ function populateMonthSelector(){
    ANALISIS BULANAN
    ========================================================= */
 
+
+
+/* =========================================================
+   PENCAPAIAN STREAK BULANAN
+   20+ Gold | 10+ Silver | 5+ Bronze | 3+ Achiever
+   Kiraan tidak merentas bulan. Hari tanpa rekod/cuti tidak
+   memutuskan streak; TIDAK HADIR memutuskan streak.
+   ========================================================= */
+
+function getMonthlyReward(streak){
+  if(streak>=20){
+    return {emoji:"🥇",label:"GOLD",cls:"rewardGold"};
+  }
+  if(streak>=10){
+    return {emoji:"🥈",label:"SILVER",cls:"rewardSilver"};
+  }
+  if(streak>=5){
+    return {emoji:"🥉",label:"BRONZE",cls:"rewardBronze"};
+  }
+  if(streak>=3){
+    return {emoji:"🏆",label:"ACHIEVER",cls:"rewardAchiever"};
+  }
+  return {emoji:"—",label:"Belum capai",cls:"rewardNone"};
+}
+
+function calculateHighestMonthlyStreak(records,name,year,month){
+
+  const nameKey=normaliseNama(name);
+  const latestByDate={};
+
+  records.forEach(r=>{
+    if(!r || normaliseNama(r.nama)!==nameKey){
+      return;
+    }
+
+    const d=parseDateMY(getRecordDate(r));
+    if(!d || d.getFullYear()!==year || d.getMonth()!==month){
+      return;
+    }
+
+    const key=getRecordDate(r);
+    const old=latestByDate[key];
+    if(!old || timeValue(r)>=timeValue(old)){
+      latestByDate[key]=r;
+    }
+  });
+
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  let current=0;
+  let highest=0;
+
+  for(let day=1;day<=daysInMonth;day++){
+    const d=new Date(year,month,day);
+
+    /* Sabtu dan Ahad tidak dikira sebagai hari sekolah. */
+    if(d.getDay()===0 || d.getDay()===6){
+      continue;
+    }
+
+    const key=formatDateMY(d);
+    const record=latestByDate[key];
+
+    /* Tiada rekod = cuti/tiada rekod, jadi tidak memutuskan streak. */
+    if(!record){
+      continue;
+    }
+
+    if(String(record.kehadiran||"").toUpperCase()==="HADIR"){
+      current++;
+      if(current>highest){
+        highest=current;
+      }
+    }else{
+      /* TIDAK HADIR memutuskan streak. */
+      current=0;
+    }
+  }
+
+  return highest;
+}
+
+function renderMonthlyStreakRewards(records,year,month){
+
+  const body=document.getElementById("monthlyStreakRewardBody");
+  if(!body){
+    return;
+  }
+
+  const ranking=pupils.map((p,index)=>{
+    const streak=calculateHighestMonthlyStreak(
+      records,
+      p[0],
+      year,
+      month
+    );
+
+    const reward=getMonthlyReward(streak);
+
+    return {
+      originalIndex:index,
+      name:p[1],
+      streak:streak,
+      reward:reward
+    };
+  });
+
+  // Susun streak tertinggi di tangga teratas.
+  // Jika nilai sama, kekalkan susunan asal murid.
+  ranking.sort((a,b)=>{
+    if(b.streak!==a.streak){
+      return b.streak-a.streak;
+    }
+    return a.originalIndex-b.originalIndex;
+  });
+
+  body.innerHTML=ranking.map((item,index)=>{
+    return `
+      <tr>
+        <td>${index+1}</td>
+        <td>${escapeHtml(item.name)}</td>
+        <td><strong>${item.streak} hari</strong></td>
+        <td class="${item.reward.cls}">${item.reward.emoji} ${item.reward.label}</td>
+      </tr>
+    `;
+  }).join("");
+}
+
+
 function renderMonthlyAnalysis(){
 
   const selector=
@@ -4331,6 +4508,12 @@ function renderMonthlyAnalysis(){
 
   renderMonthlyMoodSummary(
     moodCount
+  );
+
+  renderMonthlyStreakRewards(
+    semuaDataAnalisis,
+    year,
+    month-1
   );
 
 }
