@@ -4429,9 +4429,9 @@ function printMonthlyStudentReports(){
     const pupilPhoto=pupilImages[fullName] || "";
     if(pupilPhoto){
       try{
-        doc.addImage(pupilPhoto,"JPEG",158,12,34,34);
+        doc.addImage(pupilPhoto,"JPEG",158,12,24,24);
       }catch(e){
-        try{ doc.addImage(pupilPhoto,"PNG",158,12,34,34); }catch(e2){}
+        try{ doc.addImage(pupilPhoto,"PNG",158,12,24,24); }catch(e2){}
       }
     }
 
@@ -4496,8 +4496,6 @@ function printMonthlyStudentReports(){
     doc.text(String(stats.streak)+" hari",105,201);
     doc.text("Tahap pencapaian",25,209);
     doc.text(stats.reward.label,105,209);
-    doc.setFontSize(18);
-    doc.text(stats.reward.emoji,25,222);
 
     doc.setFont("helvetica","italic");
     doc.setFontSize(9);
